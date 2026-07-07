@@ -31,6 +31,7 @@ doc/
     performance-budget.md             — 60 fps ceilings, measurement rig
     networking-future.md              — Phase 6 authoritative server design
     world-generation.md               — procgen algorithms, automap, placement rules
+    audio-synthesis.md                — WebAudio procedural sound, SFX, generative music
   02-game-design/
     stats-and-formulas.md
     classes-and-skills.md
@@ -49,6 +50,8 @@ doc/
     hud.md
     inventory-and-panels.md
     controls.md
+    automap.md                        — fog-of-war overlay, minimap, fullscreen, colors
+    settings-and-menus.md             — game menu, settings, character creation, difficulty
   04-content-bible/
     naming-and-lore.md
     zones.md
@@ -73,6 +76,8 @@ doc/
     r4-world-progression.md           — acts, quests, difficulty, endgame
     r5-classes-skills.md              — skill trees, synergies, mechanics taxonomy
     r6-ui-ux.md                       — HUD anatomy, panel layout, controls
+  06-review/
+    gap-analysis.md                   — deep review of all docs, gaps, action items
   interactive/                        [live, open in browser]
     hud-mockup.html                   — pixel-level D2R-layout HUD mockup
     skill-tree-explorer.html          — interactive 2-class skill tree browser

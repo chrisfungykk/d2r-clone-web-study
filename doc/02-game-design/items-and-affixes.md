@@ -247,6 +247,54 @@ or the transmutation cube).
     endgame.md).
   - Immunity-breaking grand charms ("Ember Shard" family; see endgame.md).
 
+## Durability & degradation
+
+Equipment degrades through use. Durability is tracked as an integer per item instance.
+
+### When durability decreases
+
+| Event | Durability loss | Applies to |
+|---|---|---|
+| Melee attack (hit or miss) | 1 per swing | Equipped weapon |
+| Ranged attack (hit or miss) | 1 per shot | Equipped weapon (bows/crossbows exempt — they have no durability) |
+| Taking a melee hit | 1 per hit received | Random equipped armor piece (body/helm/shield/gloves/boots — weighted by slot, body armor 40%, others 15% each) |
+| Taking a ranged/spell hit | 1 per hit received | Same random slot selection |
+| Death | 0 | No durability loss on death (gold + XP loss covers death penalty) |
+| Blocking | 1 per block | Equipped shield |
+
+**Thrown weapons** use quantity instead of durability — each throw consumes one from the
+stack. Replenish via the cube repair+recharge recipe or the vendor Repair service.
+
+### Durability = 0 (broken)
+
+- Broken items remain equipped but grant **zero stats** — base damage/defense/mods all
+  inactive. The item turns red in the tooltip and the paper-doll slot shows a crack
+  overlay.
+- The character sheet recalculates derived stats as if the item is unequipped.
+- Broken items can still be repaired (except ethereal — see below).
+
+### Repair
+
+- **Vendor repair:** `repairCost = ceil(buyPrice × missingDurability / maxDurability / 4)`
+  per item (canonical formula, also in `economy.md`). "Repair All" sums per-item costs.
+- **Cube repair:** rune recipes restore full durability (see `crafting-cube.md`).
+- **Self-repair affix:** `Repairs 1 durability in N seconds` — ticks every N×25 frames;
+  restores 1 point per tick. Stacks additively if multiple sources.
+- **Indestructible affix:** item never loses durability. Combined with ethereal = best
+  possible base (ethereal's +50% bonus with no drawback).
+- **Ethereal items:** max durability = `floor(baseDurability / 2) + 1`. **Cannot be
+  repaired** by vendor or cube recipe. Self-repair affixes still function. Reaching 0
+  = permanently broken (still occupies slot, grants nothing).
+
+### Durability display
+
+Tooltip line: `Durability: current / max`. Red text when current ≤ 25% of max. No
+durability line shown for items without durability (bows, jewelry, charms, jewels).
+
+Low-durability warning: when any equipped item drops below 10% durability, a small
+anvil icon flashes near the bottom-right of the HUD (between mana globe and the bar
+edge). Clicking it opens the nearest vendor's repair dialog.
+
 ## Item generation (chest mlvl)
 
 For chest/corpse/container drops: ilvl = area alvl. TC quality roll as normal. Unique
