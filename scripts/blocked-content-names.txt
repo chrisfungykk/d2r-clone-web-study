@@ -1,0 +1,155 @@
+# IP blocklist — Blizzard proper nouns that must not appear anywhere in doc/ or src/,
+# EXCEPT doc/research/** (research appendices describe the original game).
+# Consumed by the CI grep gate (case-insensitive, word-boundary match):
+#   rg -in --word-regexp -f scripts/blocked-content-names.txt src/ doc/ --glob '!doc/research/**'
+# Generic archetype words (barbarian, zombie, waypoint, gamble) and mechanics jargon
+# (FCR, ilvl, treasure class) are deliberately NOT listed — see doc/04-content-bible/naming-and-lore.md.
+#
+# Bosses / superuniques / NPCs
+diablo
+mephisto
+baal
+andariel
+duriel
+izual
+countess
+nihlathak
+pindleskin
+larzuk
+akara
+warriv
+charsi
+gheed
+kashya
+cain
+deckard
+atma
+fara
+drognan
+lysander
+jerhyn
+meshif
+ormus
+alkor
+hratli
+asheara
+qual-kehk
+anya
+malah
+tyrael
+hadriel
+imperius
+griswold
+blood raven
+radament
+summoner
+horazon
+ancient kaa
+coldworm
+coldcrow
+bishibosh
+rakanishu
+treehead
+bonebreak
+corpsefire
+# Places / zones / lore
+tristram
+sanctuary
+kurast
+harrogath
+lut gholein
+kehjistan
+scosglen
+westmarch
+aranoch
+tamoe
+horadrim
+horadric
+zakarum
+vizjerei
+rathma
+trag'oul
+arreat
+worldstone
+pandemonium fortress
+chaos sanctuary
+tal rasha
+claw viper
+arcane sanctuary
+travincal
+durance of hate
+rogue encampment
+inner cloister
+catacombs of despair
+secret cow level
+moo moo farm
+# Items / uniques / sets / runewords
+shako
+harlequin crest
+windforce
+grandfather
+enigma
+infinity
+grief
+fortitude
+spirit sword
+call to arms
+breath of the dying
+stone of jordan
+annihilus
+hellfire torch
+gheed's fortune
+tal rasha's
+immortal king
+herald of zakarum
+oculus
+titan's revenge
+buriza
+stormshield
+raven frost
+war traveler
+arachnid mesh
+# Runes (El..Zod names)
+eld rune
+tir rune
+nef rune
+eth rune
+ith rune
+tal rune
+ral rune
+ort rune
+thul rune
+amn rune
+sol rune
+shael rune
+dol rune
+hel rune
+io rune
+lum rune
+ko rune
+fal rune
+lem rune
+pul rune
+um rune
+mal rune
+ist rune
+gul rune
+vex rune
+ohm rune
+lo rune
+sur rune
+ber rune
+jah rune
+cham rune
+zod rune
+# Skills (distinctive names, not generic words)
+whirlwind
+blessed hammer
+frozen orb
+bone spirit
+lightning fury
+dragon talon
+werebear form
+hurricane druid
+battle orders
+fist of the heavens

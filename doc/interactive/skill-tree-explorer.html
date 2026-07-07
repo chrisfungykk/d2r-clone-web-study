@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Tree Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d0d1a; color: #e0d8c8; font-family: 'Georgia', serif; display: flex; flex-direction: column; align-items: center; padding: 1rem; min-height: 100vh; }
+  h1 { font-size: 1.1rem; color: #c9a84c; margin-bottom: 0.5rem; }
+  .app { display: flex; gap: 1rem; max-width: 1000px; width: 100%; }
+  .tree-panel { flex: 1; background: #1a1a2e; border: 1px solid #3a3a4e; border-radius: 8px; padding: 0.5rem; }
+  .class-tabs { display: flex; gap: 2px; margin-bottom: 0.5rem; }
+  .class-tab { padding: 0.3rem 1rem; background: #2a2a3e; border: 1px solid #4a4a5e; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: #8a8aaa; font-weight: bold; }
+  .class-tab.active { background: #3a2a3a; color: #c9a84c; border-color: #7a5a7a; }
+  .tabs { display: flex; gap: 2px; margin-bottom: 0.75rem; }
+  .tab { padding: 0.3rem 1rem; background: #2a2a3e; border: 1px solid #4a4a5e; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 0.8rem; color: #8a8aaa; }
+  .tab.active { background: #2a3a2a; color: #c9a84c; border-color: #5a7a5a; }
+  .tree-grid { position: relative; min-height: 480px; }
+  .tree-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+  .tree-svg line { stroke: #4a4a5e; stroke-width: 2; }
+  .tree-svg line.active { stroke: #c9a84c; }
+  .node { position: absolute; width: 64px; height: 64px; border-radius: 8px; background: #1a1a2e; border: 2px solid #4a4a5e; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 0.65rem; text-align: center; transition: all 0.15s; }
+  .node:hover { border-color: #8a8aba; }
+  .node.locked { opacity: 0.4; border-color: #2a2a3e; cursor: not-allowed; }
+  .node.available { border-color: #5a7a5a; }
+  .node.invested { border-color: #c9a84c; background: #2a3a2a; }
+  .node .icon { font-size: 1.2rem; margin-bottom: 2px; }
+  .node .points { font-size: 0.6rem; color: #c9a84c; }
+  .node .name { font-weight: bold; font-size: 0.6rem; line-height: 1.1; }
+  .node .locked .name { color: #6a6a6a; }
+
+  .info-panel { width: 280px; background: #1a1a2e; border: 1px solid #3a3a4e; border-radius: 8px; padding: 1rem; }
+  .info-panel h2 { font-size: 1rem; color: #c9a84c; margin-bottom: 0.5rem; }
+  .info-panel .row { margin-bottom: 0.3rem; font-size: 0.8rem; }
+  .info-panel .row .label { color: #8a8aaa; }
+  .info-panel .synergy { color: #6a8; font-size: 0.75rem; }
+  .info-panel .remaining { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #3a3a4e; font-size: 0.9rem; color: #c9a84c; }
+  .controls { margin-top: 1rem; display: flex; gap: 0.5rem; }
+  .controls button { background: #3a3a5e; color: #e0e0e0; border: 1px solid #5a5a7a; padding: 0.3rem 1rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+  .controls button:hover { background: #4a4a6e; }
+
+  .skill-level { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .skill-level .box { width: 20px; height: 20px; border: 1px solid #4a4a5e; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; }
+  .skill-level .box.on { background: #2a3a2a; border-color: #5a7a5a; }
+</style>
+</head>
+<body>
+<h1>Skill Tree Explorer</h1>
+<div class="app">
+  <div class="tree-panel">
+    <div class="class-tabs" id="classTabs"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="tree-grid" id="treeGrid"></div>
+  </div>
+  <div class="info-panel" id="infoPanel">
+    <h2>Select a skill</h2>
+    <div id="skillInfo">Click a node to see details</div>
+    <div class="remaining" id="remaining">Points remaining: 0</div>
+    <div class="controls">
+      <button onclick="resetAll()">Reset All</button>
+      <button onclick="addPoints(10)">+10 Points</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== SKILL TREE DATA =====
+  // 7 classes x 3 trees. Full mechanical archetype data.
+  const CLASSES = {
+    Warden: {
+      trees: ["Oath-Keeper", "Iron Vow", "Last Bastion"],
+      skills: {
+        "Oath-Keeper": [
+          { id: "holy_spark", name: "Holy Spark", icon: "⚡", row: 1, col: 0, prereq: null, desc: "Single-target lightning melee strike", synergy: null },
+          { id: "keepers_mark", name: "Keeper's Mark", icon: "✨", row: 1, col: 1, prereq: null, desc: "Passive: +5% defense per point", synergy: null },
+          { id: "radiant_aura", name: "Radiant Aura", icon: "☀", row: 6, col: 0, prereq: "holy_spark", desc: "Aura: +damage to party (10% base)", synergy: null },
+          { id: "smiting_bolt", name: "Smiting Bolt", icon: "🔨", row: 6, col: 1, prereq: "keepers_mark", desc: "Ranged holy bolt: +magic damage", synergy: null },
+          { id: "zeals_focus", name: "Zeal's Focus", icon: "⚔", row: 12, col: 0, prereq: "radiant_aura", desc: "Multi-strike (2-5 strikes)", synergy: { from: "smiting_bolt", per: 8, stat: "+dmg%" } },
+          { id: "glorious_charge", name: "Glorious Charge", icon: "🔻", row: 12, col: 1, prereq: "smiting_bolt", desc: "Gap-closing charge + stun", synergy: null },
+          { id: "strength_of_oath", name: "Strength of Oath", icon: "🛡", row: 12, col: 2, prereq: "keepers_mark", desc: "Passive: +Vitality% per point", synergy: null },
+          { id: "blessed_ground", name: "Blessed Ground", icon: "🌐", row: 18, col: 0, prereq: "radiant_aura", desc: "AoE ground blessing: heal party", synergy: { from: "strength_of_oath", per: 5, stat: "+heal%" } },
+          { id: "beacon_of_hope", name: "Beacon of Hope", icon: "🔆", row: 18, col: 1, prereq: "zeals_focus", desc: "Aura: party resist all (+15-30%)", synergy: null },
+          { id: "wings_keeper", name: "Wings of Keeper", icon: "👼", row: 24, col: 0, prereq: "blessed_ground", desc: "Party teleport short range", synergy: null },
+          { id: "last_stand", name: "Last Stand", icon: "💠", row: 30, col: 0, prereq: "wings_keeper", desc: "Invulnerable 3s, stuns nearby on end", synergy: { from: "beacon_of_hope", per: 3, stat: "+duration%" } }
+        ],
+        "Iron Vow": [
+          { id: "iron_strike", name: "Iron Strike", icon: "🗡", row: 1, col: 0, prereq: null, desc: "Base melee attack + +AR%", synergy: null },
+          { id: "holy_fire", name: "Holy Fire", icon: "🔥", row: 6, col: 0, prereq: "iron_strike", desc: "Convert melee to fire dmg (+30-80%)", synergy: null },
+          { id: "sanctuary_wall", name: "Sanctuary Wall", icon: "🧱", row: 6, col: 1, prereq: "iron_strike", desc: "Passive: +block%", synergy: null },
+          { id: "hammer_virtue", name: "Hammer of Virtue", icon: "🔨", row: 12, col: 0, prereq: "holy_fire", desc: "Magic hammer AoE (spinning)", synergy: { from: "sanctuary_wall", per: 5, stat: "+magic_dmg%" } },
+          { id: "vengeance", name: "Vengeance", icon: "⚖", row: 12, col: 1, prereq: "holy_fire", desc: "Melee: add all 3 element damage", synergy: null },
+          { id: "conviction", name: "Conviction", icon: "👁", row: 18, col: 0, prereq: "hammer_virtue", desc: "Aura: -enemy resists", synergy: null },
+          { id: "sacred_shield", name: "Sacred Shield", icon: "🛡", row: 24, col: 0, prereq: "conviction", desc: "Defense shield: -phys dmg taken", synergy: { from: "vengeance", per: 3, stat: "+defense%" } },
+          { id: "final_judgment", name: "Final Judgment", icon: "⚡", row: 30, col: 0, prereq: "sacred_shield", desc: "Massive single holy dmg strike", synergy: { from: "conviction", per: 10, stat: "+dmg%" } }
+        ],
+        "Last Bastion": [
+          { id: "toughness", name: "Toughness", icon: "💪", row: 1, col: 0, prereq: null, desc: "Passive: +5% defense per point", synergy: null },
+          { id: "shield_mastery", name: "Shield Mastery", icon: "🛡", row: 1, col: 1, prereq: null, desc: "Passive: +block%, +def per point", synergy: null },
+          { id: "thorns", name: "Thorns", icon: "🌵", row: 6, col: 0, prereq: "toughness", desc: "Return damage: 50% physical", synergy: null },
+          { id: "defiance", name: "Defiance", icon: "🔰", row: 6, col: 1, prereq: "shield_mastery", desc: "Aura: +defense% to party", synergy: null },
+          { id: "resist_aura", name: "Resist Aura", icon: "🌈", row: 12, col: 0, prereq: "defiance", desc: "Aura: +res all to party", synergy: { from: "shield_mastery", per: 2, stat: "+res%" } },
+          { id: "holy_armor", name: "Holy Armor", icon: "🌟", row: 18, col: 0, prereq: "resist_aura", desc: "Buff: +def, +phys resist", synergy: null },
+          { id: "elemental_barrier", name: "Elemental Barrier", icon: "🌀", row: 24, col: 0, prereq: "holy_armor", desc: "Max res +5%", synergy: null }
+        ]
+      }
+    },
+    Arcanist: {
+      trees: ["Thermal", "Galvanic", "Entropic"],
+      skills: {
+        "Thermal": [
+          { id: "fire_bolt", name: "Fire Bolt", icon: "🔥", row: 1, col: 0, prereq: null, desc: "Single fire projectile", synergy: null },
+          { id: "ice_bolt", name: "Ice Bolt", icon: "❄", row: 1, col: 1, prereq: null, desc: "Single cold projectile, chills", synergy: null },
+          { id: "fireball", name: "Fireball", icon: "💥", row: 6, col: 0, prereq: "fire_bolt", desc: "Explosive fire projectile AoE", synergy: { from: "fire_bolt", per: 10, stat: "+dmg%" } },
+          { id: "frost_nova", name: "Frost Nova", icon: "🌊", row: 6, col: 1, prereq: "ice_bolt", desc: "Point-blank cold AoE, freeze", synergy: { from: "ice_bolt", per: 7, stat: "+dmg%" } },
+          { id: "flame_wall", name: "Flame Wall", icon: "🔲", row: 12, col: 0, prereq: "fireball", desc: "Lingering fire ground AoE", synergy: null },
+          { id: "fire_mastery", name: "Fire Mastery", icon: "☀", row: 18, col: 0, prereq: "flame_wall", desc: "Passive: +% fire dmg per point", synergy: null },
+          { id: "blizzard", name: "Blizzard", icon: "🌨", row: 18, col: 1, prereq: "frost_nova", desc: "AoE cold over time, wide radius", synergy: { from: "fire_mastery", per: 2, stat: "+length%" } },
+          { id: "cold_mastery", name: "Cold Mastery", icon: "🧊", row: 24, col: 1, prereq: "blizzard", desc: "Passive: -% enemy cold resist", synergy: null },
+          { id: "meteor", name: "Meteor", icon: "☄", row: 24, col: 0, prereq: "fire_mastery", desc: "Delayed fire AoE, stuns", synergy: { from: "cold_mastery", per: 5, stat: "+dmg%" } },
+          { id: "immolation", name: "Immolation", icon: "🔅", row: 30, col: 0, prereq: "meteor", desc: "Continuous fire beam, high DPS", synergy: { from: "fire_mastery", per: 7, stat: "+dmg%" } }
+        ],
+        "Galvanic": [
+          { id: "spark", name: "Spark", icon: "⚡", row: 1, col: 0, prereq: null, desc: "Single-target lightning bolt", synergy: null },
+          { id: "chain_bolt", name: "Chain Bolt", icon: "⛓", row: 6, col: 0, prereq: "spark", desc: "Bouncing lightning, 5 targets", synergy: { from: "spark", per: 8, stat: "+dmg%" } },
+          { id: "nova", name: "Nova", icon: "💫", row: 12, col: 0, prereq: "chain_bolt", desc: "Point-blank shockwave", synergy: null },
+          { id: "static_field", name: "Static Field", icon: "⚙", row: 12, col: 1, prereq: "chain_bolt", desc: "AoE: -25% current HP enemies", synergy: null },
+          { id: "lightning_mastery", name: "Lightning Mastery", icon: "⚡", row: 18, col: 0, prereq: "nova", desc: "Passive: +% lightning dmg + FCR", synergy: null },
+          { id: "thunder_storm", name: "Thunder Storm", icon: "🌩", row: 24, col: 0, prereq: "lightning_mastery", desc: "Periodic lightning above targets", synergy: { from: "static_field", per: 5, stat: "+dmg%" } },
+          { id: "arc_beam", name: "Arc Beam", icon: "〰", row: 30, col: 0, prereq: "thunder_storm", desc: "Continuous lightning beam, pierces", synergy: { from: "lightning_mastery", per: 8, stat: "+dmg%" } }
+        ],
+        "Entropic": [
+          { id: "toxic_cloud", name: "Toxic Cloud", icon: "☁", row: 1, col: 0, prereq: null, desc: "Ranged poison cloud DoT", synergy: null },
+          { id: "curse_bolt", name: "Curse Bolt", icon: "🔮", row: 6, col: 0, prereq: "toxic_cloud", desc: "Magic dmg + -res debuff", synergy: { from: "toxic_cloud", per: 5, stat: "+dmg%" } },
+          { id: "entropy_wave", name: "Entropy Wave", icon: "〰", row: 12, col: 0, prereq: "curse_bolt", desc: "Cone debuff: -AR, -res", synergy: null },
+          { id: "poison_mastery", name: "Poison Mastery", icon: "☠", row: 18, col: 0, prereq: "entropy_wave", desc: "Passive: +% poison dmg, +length", synergy: null },
+          { id: "necro_blast", name: "Necro Blast", icon: "💀", row: 24, col: 0, prereq: "poison_mastery", desc: "Corpse explosion: %HP fire dmg", synergy: { from: "entropy_wave", per: 3, stat: "+radius%" } },
+          { id: "void_storm", name: "Void Storm", icon: "🌀", row: 30, col: 0, prereq: "necro_blast", desc: "Mass poison+magic storm, wide", synergy: { from: "poison_mastery", per: 10, stat: "+dmg%" } }
+        ]
+      }
+    }
+  };
+
+  let currentClass = "Warden";
+  let currentTree = 0;
+  let skillPoints = 50;
+  let invested = {};
+
+  function render() {
+    const cls = CLASSES[currentClass];
+    renderClassTabs();
+    renderTabs(cls);
+    renderTree(cls);
+    renderInfo();
+  }
+
+  function renderClassTabs() {
+    const container = document.getElementById('classTabs');
+    container.innerHTML = '';
+    Object.keys(CLASSES).forEach(name => {
+      const tab = document.createElement('div');
+      tab.className = 'class-tab' + (name === currentClass ? ' active' : '');
+      tab.textContent = name;
+      tab.addEventListener('click', () => {
+        if (name === currentClass) return;
+        currentClass = name;
+        currentTree = 0;
+        resetAll(); // switching class resets invested points and re-renders
+      });
+      container.appendChild(tab);
+    });
+  }
+
+  function renderTabs(cls) {
+    const tabContainer = document.getElementById('tabs');
+    tabContainer.innerHTML = '';
+    cls.trees.forEach((name, i) => {
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (i === currentTree ? ' active' : '');
+      tab.textContent = name;
+      tab.onclick = () => { currentTree = i; render(); };
+      tabContainer.appendChild(tab);
+    });
+  }
+
+  function renderTree(cls) {
+    const treeName = cls.trees[currentTree];
+    const skills = cls.skills[treeName];
+    const grid = document.getElementById('treeGrid');
+    grid.innerHTML = '';
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'tree-svg');
+    svg.style.width = '100%';
+    svg.style.height = (skills.length * 70 + 40) + 'px';
+    grid.appendChild(svg);
+
+    // Layout: 3 columns (col 0,1,2), rows by level gate
+    const colPos = [20, 120, 220];
+    const rowMap = { 1: 10, 6: 90, 12: 170, 18: 250, 24: 330, 30: 410 };
+    const placed = {};
+
+    skills.forEach(s => {
+      const x = colPos[s.col];
+      const y = rowMap[s.row] || 60;
+      placed[s.id] = { x, y };
+    });
+
+    // Draw prerequisite lines
+    skills.forEach(s => {
+      if (s.prereq && placed[s.id] && placed[s.prereq]) {
+        const from = placed[s.prereq];
+        const to = placed[s.id];
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', from.x + 32);
+        line.setAttribute('y1', from.y + 64);
+        line.setAttribute('x2', to.x + 32);
+        line.setAttribute('y2', to.y);
+        const hasPoints = invested[s.prereq] > 0;
+        line.setAttribute('class', hasPoints ? 'active' : '');
+        svg.appendChild(line);
+      }
+    });
+
+    // Draw nodes
+    skills.forEach(s => {
+      const p = placed[s.id];
+      const node = document.createElement('div');
+      node.className = 'node';
+      const investedPts = invested[s.id] || 0;
+      const prereqMet = !s.prereq || (invested[s.prereq] > 0);
+      const hasPoints = investedPts > 0;
+
+      if (hasPoints) node.classList.add('invested');
+      else if (prereqMet) node.classList.add('available');
+      else node.classList.add('locked');
+
+      node.style.left = p.x + 'px';
+      node.style.top = p.y + 'px';
+
+      node.innerHTML = `
+        <div class="icon">${s.icon}</div>
+        <div class="name">${s.name}</div>
+        ${hasPoints ? `<div class="points">${investedPts}</div>` : ''}
+      `;
+
+      // Left-click: invest a point (if prereq met and points remain)
+      node.addEventListener('click', () => {
+        const met = !s.prereq || (invested[s.prereq] || 0) > 0;
+        if (skillPoints > 0 && met) {
+          invested[s.id] = (invested[s.id] || 0) + 1;
+          skillPoints--;
+          render();
+        }
+        showSkillInfo(s);
+      });
+
+      // Right-click: remove a point
+      node.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if ((invested[s.id] || 0) > 0) {
+          invested[s.id]--;
+          skillPoints++;
+          render();
+        }
+        showSkillInfo(s);
+      });
+
+      // Show info on hover
+      node.addEventListener('mouseenter', () => showSkillInfo(s));
+
+      grid.appendChild(node);
+    });
+  }
+
+  function showSkillInfo(s) {
+    const el = document.getElementById('skillInfo');
+    const investedPts = invested[s.id] || 0;
+    const prereqMet = !s.prereq || (invested[s.prereq] > 0);
+    let html = `
+      <div class="row"><span class="label">${s.name}</span> (slvl ${investedPts || '—'})</div>
+      <div class="row">${s.icon} ${s.desc}</div>
+      <div class="row"><span class="label">Level req:</span> ${s.row}</div>
+      <div class="row"><span class="label">Prereq:</span> ${s.prereq || 'none'}</div>
+    `;
+    if (s.synergy) {
+      html += `<div class="synergy">Synergy: +${s.synergy.per}%${s.synergy.stat} per hard point in ${s.synergy.from}</div>`;
+    }
+    el.innerHTML = html;
+    document.getElementById('remaining').textContent = `Points remaining: ${skillPoints}`;
+  }
+
+  function renderInfo() {
+    document.getElementById('remaining').textContent = `Points remaining: ${skillPoints}`;
+    if (!document.querySelector('.node:hover')) {
+      document.getElementById('skillInfo').innerHTML = '<div class="row">Click a skill node to invest (left-click = +1, right-click = -1)</div>';
+    }
+  }
+
+  function resetAll() {
+    invested = {};
+    skillPoints = 50;
+    render();
+  }
+
+  function addPoints(n) {
+    skillPoints += n;
+    render();
+  }
+
+  // Initial render
+  render();
+</script>
+</body>
+</html>

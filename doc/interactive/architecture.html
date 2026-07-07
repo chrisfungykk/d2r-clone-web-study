@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<!-- NOTE: Mermaid is loaded from the jsdelivr CDN; when offline, diagrams will not render. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D2R-Clone Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #e0e0e0; font-family: system-ui, sans-serif; padding: 2rem; }
+  h1 { font-size: 1.5rem; margin-bottom: 1rem; color: #c9a84c; }
+  h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; color: #a8d8ea; }
+  .mermaid { margin: 1.5rem 0; display: flex; justify-content: center; }
+  .diagram-wrap { background: #16213e; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #2a2a4a; }
+  .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+  .legend-item { padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.85rem; background: #1e2a4a; }
+  .controls { margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .controls button { background: #2a3a5e; color: #e0e0e0; border: 1px solid #3a4a6e; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; }
+  .controls button:hover { background: #3a4a6e; }
+</style>
+</head>
+<body>
+
+<h1>D2R-Clone Architecture</h1>
+
+<div class="diagram-wrap">
+<h2>One Sim, Three Hosts</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph core["src/sim — Deterministic Core"]
+        SIM["Sim<br/>25 Hz fixed tick<br/>Seeded RNG · No Date/Math.random<br/>Content-as-data tables"]
+    end
+
+    subgraph hosts["Hosts"]
+        OFF["Offline Browser<br/>(Phase 0+)"]
+        SRV["Authoritative Server<br/>(Phase 6 · Node)"]
+        HEAD["Headless<br/>(Tests · Bots · Balance)"]
+    end
+
+    SIM --> OFF
+    SIM --> SRV
+    SIM --> HEAD
+
+    style core fill:#1a2a1a,stroke:#4a8,color:#ccc
+    style hosts fill:#1a1a2e,stroke:#68a,color:#ccc
+</div>
+</div>
+
+<div class="diagram-wrap">
+<h2>Module Map</h2>
+<div class="mermaid">
+flowchart LR
+    subgraph browser["Browser App"]
+        UI["src/ui<br/>HUD · Panels · Menus<br/>DOM overlay"]
+        GAME["src/game<br/>Controller · Input → Intents"]
+        RENDER["src/render<br/>Three.js · Procedural assets<br/>Camera · Interpolation"]
+    end
+
+    subgraph det["Deterministic"]
+        WORLDAPI["src/world_api.ts<br/>IWorld — THE SEAM"]
+        SIMD["src/sim<br/>Systems + Content data"]
+    end
+
+    NET["src/net (Phase 6)<br/>ClientWorld snapshot mirror"]
+
+    UI --> GAME
+    GAME -->|intents| WORLDAPI
+    RENDER -->|queries + interpolation| WORLDAPI
+    WORLDAPI --> SIMD
+    WORLDAPI -.Phase 6.-> NET
+
+    style WORLDAPI fill:#e8d5b7,stroke:#c9a84c,color:#222
+    style det fill:#1a2a1a,stroke:#4a8,color:#aaa
+    style browser fill:#1a1a2e,stroke:#68a,color:#aaa
+</div>
+</div>
+
+<div class="diagram-wrap">
+<h2>Frame Loop</h2>
+<div class="mermaid">
+flowchart LR
+    RAF["requestAnimationFrame"] --> ACC["Accumulate dt<br/>clamped 250ms"]
+    ACC --> DECIDE{"acc ≥ 40ms?"}
+    DECIDE -->|yes| TICK["sim.tick(intents)<br/>25 Hz"]
+    TICK --> SUB["acc -= 40ms"]
+    SUB --> DECIDE
+    DECIDE -->|no| ALPHA["alpha = acc / 40"]
+    ALPHA --> DRAW["render.draw(world, alpha)<br/>Interpolated positions"]
+</div>
+</div>
+
+<div class="diagram-wrap">
+<h2>Rendering Pipeline</h2>
+<div class="mermaid">
+flowchart LR
+    subgraph render["Renderer"]
+        TER["TerrainLayer<br/>Chunked heightfields"]
+        PROP["PropLayer<br/>Instanced trees/ruins"]
+        ENT["EntityLayer<br/>Procedural creatures/players"]
+        MISS["MissileLayer"]
+        FX["FxLayer<br/>Particles · Lights"]
+        UI["UI Layer<br/>DOM overlay for labels/HUD"]
+        SKY["SkyLayer<br/>Fog · Weather"]
+    end
+
+    subgraph data["Sim data"]
+        SNP["prevSnapshot / snapshot / alpha"]
+        EVT["drainEvents()"]
+    end
+
+    SNP --> TER
+    SNP --> PROP
+    SNP --> ENT
+    SNP --> MISS
+    EVT --> FX
+    SNP --> UI
+    SNP --> SKY
+</div>
+</div>
+
+<div class="diagram-wrap">
+<h2>Data Model — Content Tables</h2>
+<div class="mermaid">
+flowchart TB
+    ITEM["itemBases"] -->|referenced by| AFFIX["affixes"]
+    ITEM -->|referenced by| TC["treasureClasses"]
+    TC -->|upgrades in| DIFF["difficulty"]
+    AFFIX -->|rolled onto| UNIQ["uniques / sets"]
+    MON["monsters"] -->|drop from| TC
+    MON -->|spawn in| ZONES["zones"]
+    MON -->|use AI from| AI["AI archetypes"]
+    ZONES -->|part of| ACTS["acts"]
+    QUESTS["quests"] -->|gated by| ACTS
+    SKILLS["skills"] -->|for| CLASSES["charStart"]
+    SKILLS -->|synergies| SKILLS
+    WORDS["words"] -->|need| ITEM
+    GEMS["gems / runes"] -->|socket into| ITEM
+    RECIPES["recipes"] -->|use| GEMS
+    RECIPES -->|output| ITEM
+
+    style AFFIX fill:#2a2a1e,stroke:#ca8,color:#ccc
+    style TC fill:#1e2a2e,stroke:#8ac,color:#ccc
+    style SKILLS fill:#2a1e2a,stroke:#c8a,color:#ccc
+    style ZONES fill:#1e2a1e,stroke:#8c8,color:#ccc
+</div>
+</div>
+
+<div class="diagram-wrap">
+<h2>Camera Rig</h2>
+<div class="mermaid">
+flowchart LR
+    ZOOM["z ∈ [0,1]<br/>Mouse wheel"] --> RIG["CameraRig"]
+    RIG --> DIST["dist(z): 4m → 28m"]
+    RIG --> PITCH["pitch(z): 18° → 58°"]
+    RIG --> FOV["fov(z): 50° → 36°"]
+    RIG --> YAW["yaw: ±45° (orbit)"]
+    RIG --> TILT["tilt: ±8° (close zoom only)"]
+    RIG --> CAM["PerspectiveCamera<br/>Critically damped"]
+</div>
+</div>
+
+<h2>Phase Dependency Graph</h2>
+<div class="diagram-wrap">
+<div class="mermaid">
+flowchart LR
+    P0["Phase 0<br/>Engine Core"] --> P1["Phase 1<br/>Vertical Slice"]
+    P1 --> P2["Phase 2<br/>Item System"]
+    P1 --> P3["Phase 3<br/>Classes Complete"]
+    P2 --> P4["Phase 4<br/>World Complete"]
+    P3 --> P4
+    P4 --> P5["Phase 5<br/>Endgame"]
+    P5 --> P6["Phase 6<br/>Multiplayer"]
+    P5 --> P7["Phase 7<br/>Polish"]
+    P6 -.-> P7
+
+    style P0 fill:#3a1a1a,stroke:#a44,color:#ccc
+    style P1 fill:#1a3a1a,stroke:#4a8,color:#ccc
+    style P5 fill:#1a1a3a,stroke:#48a,color:#ccc
+</div>
+</div>
+
+<div class="controls">
+  <button onclick="location.reload()">Refresh</button>
+  <button onclick="document.querySelectorAll('.mermaid').forEach(e => e.innerHTML = e.innerHTML)">Re-render</button>
+</div>
+
+<div class="legend">
+  <div class="legend-item">🟩 Deterministic (src/sim)</div>
+  <div class="legend-item">🟦 Browser (src/render, src/game, src/ui)</div>
+  <div class="legend-item">🟨 The Seam (world_api.ts)</div>
+  <div class="legend-item">🟥 Engine Phase</div>
+  <div class="legend-item">🟩 Slice Phase</div>
+  <div class="legend-item">🟪 Endgame Phase</div>
+</div>
+
+<script>
+  mermaid.initialize({
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#2a3a5e',
+      primaryTextColor: '#e0e0e0',
+      primaryBorderColor: '#5a7aae',
+      lineColor: '#7a9abe',
+      secondaryColor: '#1e2a4a',
+      tertiaryColor: '#2a3a2a'
+    }
+  });
+</script>
+</body>
+</html>

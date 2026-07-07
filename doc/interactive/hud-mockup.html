@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D2R HUD Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+  body {
+    background: #0d0d1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 100vh;
+    font-family: 'Georgia', serif;
+    color: #e0d8c8;
+  }
+
+  .game-viewport {
+    width: 1200px;
+    height: 675px;
+    background: radial-gradient(ellipse at 50% 40%, #1a2a1a 0%, #0a0a0a 100%);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #2a2a3e;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8);
+  }
+
+  /* crosshair center */
+  .crosshair {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px; height: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Monster HP bar top-center */
+  .monster-hp {
+    position: absolute;
+    top: 30px; left: 50%; transform: translateX(-50%);
+    width: 340px;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid #4a3a2a;
+    border-radius: 4px;
+    padding: 4px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+    display: none;
+  }
+  .monster-hp .name { color: #c9a84c; font-size: 13px; }
+  .monster-hp .bar-wrap { width: 100%; height: 6px; background: #1a1a1a; border-radius: 3px; margin-top: 2px; }
+  .monster-hp .bar-fill { height: 100%; width: 75%; background: #a44; border-radius: 3px; }
+
+  /* Merc portrait top-left */
+  .merc-portrait {
+    position: absolute;
+    top: 15px; left: 15px;
+    width: 48px; height: 64px;
+    background: #1a1a2e;
+    border: 2px solid #4a3a2a;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+  }
+  .merc-portrait .head {
+    width: 24px; height: 24px;
+    background: #2a3a2a;
+    border-radius: 50%;
+    margin-top: 6px;
+  }
+  .merc-portrait .body {
+    width: 18px; height: 18px;
+    background: #3a2a1a;
+    margin-top: 2px;
+  }
+  .merc-portrait .hp-bar {
+    width: 40px; height: 4px;
+    background: #1a1a1a;
+    margin-top: 4px;
+    border-radius: 2px;
+  }
+  .merc-portrait .hp-fill { width: 80%; height: 100%; background: #6a4; border-radius: 2px; }
+
+  /* Minimap */
+  .minimap {
+    position: absolute;
+    top: 15px; right: 15px;
+    width: 120px; height: 120px;
+    background: rgba(10,10,20,0.8);
+    border: 1px solid #3a3a4e;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .minimap-inner {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+  .minimap-line {
+    position: absolute; height: 1px; background: rgba(160,180,200,0.3);
+    transform-origin: 60px 60px;
+  }
+  .minimap-player {
+    position: absolute; top: 55px; left: 55px;
+    width: 10px; height: 10px;
+    background: #c9a84c;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  }
+
+  /* === HUD BAR === */
+  .hud-bar {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 82px;
+    background: linear-gradient(180deg, transparent 0%, #1a1410 15%, #1a1410 100%);
+    border-top: 2px solid #3a2a1a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+  }
+
+  /* Globe */
+  .globe {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    position: relative;
+    top: -25px;
+    border: 3px solid #4a3a2a;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .globe-inner {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+  .globe-health {
+    background: radial-gradient(ellipse at 40% 35%, #a22 0%, #600 60%, #300 100%);
+  }
+  .globe-mana {
+    background: radial-gradient(ellipse at 40% 35%, #238 0%, #115 60%, #002 100%);
+  }
+  .globe-liquid {
+    position: absolute; bottom: 0; width: 100%;
+    transition: height 0.3s ease;
+    border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  }
+  .globe-health .globe-liquid { height: 72%; background: #a22; }
+  .globe-mana .globe-liquid { height: 60%; background: #238; }
+
+  /* Center cluster */
+  .center-cluster {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .skill-btn {
+    width: 52px; height: 52px;
+    background: #1a1410;
+    border: 2px solid #4a3a2a;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+  .skill-btn .icon {
+    width: 32px; height: 32px;
+    background: #2a2a3e;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .skill-btn .bind {
+    position: absolute; top: -10px; left: 2px;
+    background: #1a1410;
+    border: 1px solid #4a3a2a;
+    font-size: 9px;
+    padding: 0 3px;
+    color: #b8a888;
+  }
+  .skill-btn.lmb .icon { border: 1px solid #a86; }
+  .skill-btn.rmb .icon { border: 1px solid #68a; }
+
+  /* Belt */
+  .belt {
+    display: flex;
+    gap: 3px;
+    background: #1a1410;
+    border: 2px solid #3a2a1a;
+    border-radius: 4px;
+    padding: 4px;
+  }
+  .belt-cell {
+    width: 36px; height: 36px;
+    background: #2a1a12;
+    border: 1px solid #4a3a2a;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+  .belt-cell .potion {
+    width: 18px; height: 22px;
+    border-radius: 50%;
+    position: relative;
+  }
+  .belt-cell .potion.hp { background: #a44; }
+  .belt-cell .potion.mp { background: #46a; }
+  .belt-cell .potion.rejuv { background: #a8a; }
+  .belt-cell .key {
+    position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; color: #8a7a6a;
+  }
+
+  /* Stamina bar */
+  .stamina-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .stamina-bar {
+    width: 80px; height: 4px;
+    background: #1a1a1a;
+    border-radius: 2px;
+  }
+  .stamina-fill { height: 100%; width: 60%; background: #8a8; border-radius: 2px; }
+
+  .run-btn {
+    width: 20px; height: 20px;
+    border: 1px solid #4a3a2a;
+    border-radius: 50%;
+    background: #2a1a12;
+    cursor: pointer;
+    text-align: center;
+    line-height: 20px;
+    font-size: 10px;
+  }
+
+  /* Mini panel */
+  .mini-panel-toggle {
+    position: absolute;
+    top: -20px; left: 50%; transform: translateX(-50%);
+    width: 60px; height: 16px;
+    background: #1a1410;
+    border: 1px solid #3a2a1a;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    text-align: center;
+    font-size: 9px;
+    line-height: 16px;
+    color: #8a7a6a;
+  }
+
+  .mini-panel {
+    display: flex;
+    gap: 2px;
+    position: absolute;
+    bottom: 88px; left: 50%; transform: translateX(-50%);
+    background: rgba(20,16,12,0.9);
+    border: 1px solid #3a2a1a;
+    border-radius: 4px;
+    padding: 2px;
+  }
+  .mini-btn {
+    width: 22px; height: 22px;
+    background: #2a1a12;
+    border: 1px solid #3a2a1a;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 10px;
+    text-align: center;
+    line-height: 22px;
+    color: #8a7a6a;
+  }
+
+  /* Controls */
+  .controls-panel {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .controls-panel button {
+    background: #2a2a4e;
+    color: #e0e0e0;
+    border: 1px solid #4a4a6e;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  .controls-panel button:hover { background: #3a3a5e; }
+
+  .status-bar {
+    margin-top: 0.5rem;
+    color: #6a6a8a;
+    font-size: 0.8rem;
+    text-align: center;
+    max-width: 1200px;
+  }
+</style>
+</head>
+<body>
+
+<div class="game-viewport" id="viewport">
+  <div class="crosshair"></div>
+
+  <!-- Monster HP (hidden by default) -->
+  <div class="monster-hp" id="monsterHP">
+    <div class="name">Rustwalker Champion</div>
+    <div class="bar-wrap"><div class="bar-fill"></div></div>
+  </div>
+
+  <!-- Merc portrait -->
+  <div class="merc-portrait">
+    <div class="head"></div>
+    <div class="body"></div>
+    <div class="hp-bar"><div class="hp-fill"></div></div>
+  </div>
+
+  <!-- Minimap -->
+  <div class="minimap">
+    <div class="minimap-inner">
+      <div class="minimap-line" style="width:80px;transform:rotate(30deg);top:60px;left:10px;"></div>
+      <div class="minimap-line" style="width:60px;transform:rotate(-45deg);top:50px;left:20px;"></div>
+      <div class="minimap-line" style="width:100px;transform:rotate(10deg);top:40px;left:5px;"></div>
+      <div class="minimap-line" style="width:70px;transform:rotate(-30deg);top:70px;left:15px;"></div>
+      <div class="minimap-line" style="width:50px;transform:rotate(70deg);top:30px;left:30px;"></div>
+      <div class="minimap-player"></div>
+      <div style="position:absolute;top:20px;left:80px;width:3px;height:3px;background:#a84;border-radius:50%;"></div>
+      <div style="position:absolute;top:75px;left:30px;width:3px;height:3px;background:#a44;border-radius:50%;"></div>
+      <div style="position:absolute;top:50px;left:90px;width:3px;height:3px;background:#44a;border-radius:50%;"></div>
+    </div>
+  </div>
+
+  <!-- HUD Bar -->
+  <div class="hud-bar">
+    <!-- Health globe -->
+    <div class="globe globe-health">
+      <div class="globe-inner">
+        <div class="globe-liquid"></div>
+      </div>
+    </div>
+
+    <!-- Center cluster -->
+    <div class="center-cluster">
+      <!-- LMB skill -->
+      <div class="skill-btn lmb"><div class="bind">LMB</div><div class="icon">⚔</div></div>
+
+      <!-- Stamina + run -->
+      <div class="stamina-wrap">
+        <div class="stamina-bar"><div class="stamina-fill"></div></div>
+        <div class="run-btn" id="runBtn" onclick="toggleRun()">🏃</div>
+      </div>
+
+      <!-- Belt -->
+      <div class="belt">
+        <div class="belt-cell"><div class="potion hp"></div><span class="key">1</span></div>
+        <div class="belt-cell"><div class="potion mp"></div><span class="key">2</span></div>
+        <div class="belt-cell"><div class="potion hp"></div><span class="key">3</span></div>
+        <div class="belt-cell"><div class="potion rejuv"></div><span class="key">4</span></div>
+      </div>
+
+      <!-- RMB skill -->
+      <div class="skill-btn rmb"><div class="bind">RMB</div><div class="icon">✦</div></div>
+    </div>
+
+    <!-- Mana globe -->
+    <div class="globe globe-mana">
+      <div class="globe-inner">
+        <div class="globe-liquid"></div>
+      </div>
+    </div>
+
+    <!-- Mini-panel toggle -->
+    <div class="mini-panel-toggle" onclick="toggleMiniPanel()">▲</div>
+  </div>
+
+  <!-- Mini-panel (hidden by default) -->
+  <div class="mini-panel" id="miniPanel" style="display:none;">
+    <div class="mini-btn" title="Character">C</div>
+    <div class="mini-btn" title="Inventory">I</div>
+    <div class="mini-btn" title="Skills">T</div>
+    <div class="mini-btn" title="Party">P</div>
+    <div class="mini-btn" title="Map">M</div>
+    <div class="mini-btn" title="Quest">Q</div>
+    <div class="mini-btn" title="Menu">☰</div>
+  </div>
+</div>
+
+<div class="controls-panel">
+  <button onclick="document.getElementById('monsterHP').style.display = document.getElementById('monsterHP').style.display === 'none' ? 'flex' : 'none'">Toggle Monster HP</button>
+  <button onclick="document.getElementById('runBtn').textContent = document.getElementById('runBtn').textContent === '🏃' ? '🚶' : '🏃'">Toggle Run/Walk</button>
+  <button onclick="addBeltCell()">Add belt cell</button>
+  <button onclick="let g=document.querySelector('.globe-health .globe-liquid');g.style.height=Math.random()*80+15+'%'">Random HP</button>
+  <button onclick="let g=document.querySelector('.globe-mana .globe-liquid');g.style.height=Math.random()*80+15+'%'">Random Mana</button>
+</div>
+
+<div class="status-bar">
+  D2R-style HUD mockup — globes, skill buttons, belt, stamina, minimap, merc portrait, monster HP bar.
+  <br>Interactive: toggle elements, randomize globes, belt rows. All elements are representative proportions at 16:9.
+</div>
+
+<script>
+  function toggleRun() {
+    const btn = document.getElementById('runBtn');
+    btn.textContent = btn.textContent === '🏃' ? '🚶' : '🏃';
+  }
+  function toggleMiniPanel() {
+    const panel = document.getElementById('miniPanel');
+    panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+  }
+  function addBeltCell() {
+    const belt = document.querySelector('.belt');
+    const cell = document.createElement('div');
+    cell.className = 'belt-cell';
+    const potion = document.createElement('div');
+    potion.className = 'potion hp';
+    const key = document.createElement('span');
+    key.className = 'key';
+    key.textContent = String(belt.children.length + 1);
+    cell.appendChild(potion);
+    cell.appendChild(key);
+    belt.appendChild(cell);
+  }
+</script>
+</body>
+</html>
