@@ -6,6 +6,7 @@
 
 import { attachInput } from "./game/input.ts";
 import { parseSeed, Session } from "./game/session.ts";
+import { PerfOverlay, PerfSampler } from "./render/perf-overlay.ts";
 import { Renderer } from "./render/renderer.ts";
 import { Sim } from "./sim/sim.ts";
 import { DevHud } from "./ui/devhud.ts";
@@ -21,10 +22,23 @@ renderer.buildZone(sim);
 
 const hud = new DevHud(app, seed);
 
+const perfOn = /[?&]perf=1/.test(location.search);
+const perfSampler = perfOn ? new PerfSampler() : null;
+const perfOverlay = perfOn ? new PerfOverlay(hud.perfMount) : null;
+let lastFrame = 0;
+
 const session = new Session(sim, {
   onRender: (world, alpha) => {
     renderer.render(world, alpha);
     hud.update(world.tick, world.snapshot().entities.length, alpha);
+    if (perfSampler && perfOverlay) {
+      const now = performance.now();
+      const frameMs = lastFrame > 0 ? now - lastFrame : 1000 / 60;
+      lastFrame = now;
+      perfSampler.push(frameMs, session.lastTickMs);
+      const info = renderer.info();
+      perfOverlay.render(perfSampler.compute(info.draws, info.tris, world.snapshot().entities.length));
+    }
   },
 });
 

@@ -62,6 +62,10 @@ export class Session {
     return this.loop.alpha;
   }
 
+  get lastTickMs(): number {
+    return this.loop.lastTickMs;
+  }
+
   /** Browser driver: rAF loop + freeze on tab blur. Not used in headless tests. */
   attach(): void {
     this.start();

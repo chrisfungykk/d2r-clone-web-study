@@ -151,6 +151,12 @@ export class Renderer {
     return this.renderer.domElement;
   }
 
+  /** Draw calls + triangles from the last render (perf overlay / harness). */
+  info(): { draws: number; tris: number } {
+    const r = this.renderer.info.render;
+    return { draws: r.calls, tris: r.triangles };
+  }
+
   resize(): void {
     const w = this.width();
     const h = this.height();

@@ -8,6 +8,13 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: true,
+    // Multi-page: the game (index) + the headless perf scene (driven by scripts/run-perf.mjs).
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        perf: "perf.html",
+      },
+    },
   },
   test: {
     environment: "node",

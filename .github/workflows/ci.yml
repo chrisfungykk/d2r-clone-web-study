@@ -67,3 +67,19 @@ jobs:
         run: npm run build
       - name: Bundle size gate (≤ 1.2 MB gzip)
         run: npm run size
+
+  perf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium (Playwright)
+        run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run build
+      - name: Perf gate (draws/heap/tick; fps report-only)
+        run: npm run perf

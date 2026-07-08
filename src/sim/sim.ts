@@ -231,6 +231,33 @@ export class Sim implements IWorld {
     return e;
   }
 
+  /** Perf-harness only (headless/perf-scene.ts): populate a worst-case cluster near the
+   * player — `statics` idle monsters + `walkers` monsters looping through a path. Not used by
+   * gameplay or golden replays. */
+  perfPopulate(walkers: number, statics: number): void {
+    const pr = this.rng.child("perf");
+    const { x: ex, z: ez } = this.zoneState.entrance;
+    const nearWalkable = (spread: number): { x: number; z: number } => {
+      for (let a = 0; a < 24; a++) {
+        const x = ex + (pr.float("x") - 0.5) * spread;
+        const z = ez + (pr.float("z") - 0.5) * spread;
+        if (this.zoneState.walkAt(x, z)) return { x, z };
+      }
+      return { x: ex, z: ez };
+    };
+    for (let i = 0; i < statics; i++) {
+      const s = nearWalkable(36);
+      this.pool.spawn({ kind: "monster", archetype: "dev_dummy", x: s.x, z: s.z, tick: 0 });
+    }
+    for (let i = 0; i < walkers; i++) {
+      const s = nearWalkable(24);
+      const e = this.pool.spawn({ kind: "monster", archetype: "dev_walker", x: s.x, z: s.z, tick: 0 });
+      const path = Array.from({ length: 10 }, () => nearWalkable(24));
+      e.locomotion = { speed: 0.2, mode: "run", radius: 1, path, pathIndex: 0 };
+      e.anim = { state: "run", frame: 0, totalFrames: 8 };
+    }
+  }
+
   /** A few static monsters near the entrance for AoI/render exercising (no locomotion). */
   private spawnStaticDummies(): void {
     const zr = this.rng.child("dev-dummies");

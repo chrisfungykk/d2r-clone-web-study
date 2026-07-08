@@ -31,6 +31,7 @@ export class HostLoop {
   private last = 0;
   private running = false;
   private frozen = false;
+  private _lastTickMs = 0;
 
   constructor(world: IWorld, hooks: LoopHooks) {
     this.world = world;
@@ -64,6 +65,11 @@ export class HostLoop {
     return this.acc / TICK_MS;
   }
 
+  /** Wall-clock ms spent in sim advances during the last frame (perf overlay). */
+  get lastTickMs(): number {
+    return this._lastTickMs;
+  }
+
   /** Advance real time to `nowMs`, running whole ticks; returns ticks advanced this frame. */
   frame(nowMs = this.hooks.now()): number {
     if (!this.running) {
@@ -81,12 +87,14 @@ export class HostLoop {
     this.acc += dt;
 
     let ticks = 0;
+    const tickStart = this.hooks.now();
     while (this.acc >= TICK_MS) {
       this.world.advance();
       this.hooks.onTick?.();
       this.acc -= TICK_MS;
       ticks += 1;
     }
+    this._lastTickMs = ticks > 0 ? this.hooks.now() - tickStart : 0;
     this.hooks.onRender?.(this.alpha);
     return ticks;
   }
