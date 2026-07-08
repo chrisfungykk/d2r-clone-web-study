@@ -50,6 +50,14 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/sim/fixedmath-tables.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noApproximativeNumericConstant": "off" }
+        }
+      }
     }
   ]
 }
