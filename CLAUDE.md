@@ -44,7 +44,18 @@ world-of-claudecraft. Full documentation lives in `doc/` — start at `doc/READM
 
 ```
 npm run dev        # Vite dev server
+npm run build      # Production build (Vite)
+npm run preview    # Serve the production build (used by the perf harness)
 npm test           # Vitest: unit + data validation + golden replays
-npm run lint       # Biome + sim-purity rules
-npm run perf       # headless worst-case perf scene
+npm run check      # tsc --noEmit (strict type-check)
+npm run lint       # Biome + sim-purity + import-boundary gates
+npm run ip-audit   # No Blizzard proper nouns in src/ or doc/ (excl. doc/research)
+npm run size       # Bundle-size gate (≤ 1.2 MB gzip; run after build)
+npm run perf       # Headless worst-case perf scene (Playwright vs preview)
+npm run replay     # Golden-replay record/replay CLI (node headless/replay.ts)
 ```
+
+Toolchain (Phase 0): Node ≥ 22 (dev on 25; CI on 24), TypeScript strict with
+`noUncheckedIndexedAccess`, Vite + Vitest, Biome. Relative imports use explicit `.ts`
+extensions (`allowImportingTsExtensions`) so the same source runs under tsc, Vite, Vitest,
+and `node` native type-stripping.

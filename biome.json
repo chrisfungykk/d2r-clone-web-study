@@ -1,0 +1,55 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": ["src/**", "headless/**", "tests/**/*.ts", "scripts/**", "*.ts"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 108
+  },
+  "assist": { "enabled": true },
+  "linter": {
+    "enabled": true,
+    "rules": { "recommended": true }
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "double", "trailingCommas": "all" }
+  },
+  "overrides": [
+    {
+      "includes": ["src/sim/**", "src/world_api.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Date": "Banned in src/sim (determinism): the sim never reads wall-clock time.",
+                  "performance": "Banned in src/sim (determinism): the sim never reads wall-clock time.",
+                  "crypto": "Banned in src/sim (determinism): use the seeded rng in src/sim/rng.ts.",
+                  "setTimeout": "Banned in src/sim (determinism): the sim has no timers, only ticks.",
+                  "setInterval": "Banned in src/sim (determinism): the sim has no timers, only ticks.",
+                  "requestAnimationFrame": "Banned in src/sim: rAF belongs to the host loop.",
+                  "window": "Banned in src/sim: no DOM in the deterministic core.",
+                  "document": "Banned in src/sim: no DOM in the deterministic core."
+                }
+              }
+            },
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "three": "src/sim is renderer-agnostic (determinism.md): no three imports."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

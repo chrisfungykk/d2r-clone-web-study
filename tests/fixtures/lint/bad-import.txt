@@ -1,0 +1,8 @@
+// Fixture for the import-boundary lint test (tests/unit/sim-purity.test.ts).
+// Treated as a render/ui/game-side source: importing from src/sim/** is forbidden.
+import { Sim } from "../sim/sim.ts";
+import type { WorldSnapshot } from "../world_api.ts"; // this line is allowed (the seam)
+
+export function boot(): Sim {
+  return new Sim(0);
+}

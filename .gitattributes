@@ -1,0 +1,7 @@
+# LF normalization is load-bearing: golden replay fixtures are hashed by the
+# sim, and CRLF churn on Windows checkouts would break those hashes. Land this
+# BEFORE any fixture is committed (see doc/01-architecture/determinism.md).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary

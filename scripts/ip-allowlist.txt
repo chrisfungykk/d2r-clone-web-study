@@ -1,0 +1,21 @@
+# IP allowlist — phrases where a blocked term legitimately appears as a substring and is
+# NOT content usage. A blocked-name match is suppressed only when it falls inside one of
+# these phrase occurrences. Keep entries as specific as possible.
+#
+# Meta-references to the source game / research projects (naming what we clone, not using
+# its content):
+Diablo II
+Project Diablo 2
+# Generic archetype word that collides with a superunique's name; the blocklist header
+# itself says generic archetype words are fine.
+summoner
+# Original skill name that reuses a common English word (not the D2 zone "…Sanctuary"):
+Sanctuary Wall
+sanctuary_wall
+# Original unique-item name that contains the common English word "grief":
+Keeper's Grief
+# Generic combat-motion words used as mechanics descriptors in design docs (a spinning
+# attack; a shout buff) — the blocklist lists them as distinctive skill names, but the
+# design docs use them descriptively ("whirlwind-style", "battle-orders equivalent").
+whirlwind
+battle orders
