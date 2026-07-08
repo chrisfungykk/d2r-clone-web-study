@@ -7,11 +7,7 @@
 > `skill-data.md` — the authoring source for `src/sim/data/skills.ts`. Warden and
 > Arcanist are covered there; the other 5 classes are backlog.
 
-**Note on "Stamina per vit" lines below:** `02-game-design/stats-and-formulas.md` is
-canonical — Vitality grants **+1 stamina per point, universal for all classes**; class
-differences in stamina are expressed through the per-class `classDrain` constant (and
-form modifiers), not through per-vit gain. The per-class "Stamina per vit" values in this
-file are superseded flavor and will be removed when the class entries are next revised.
+**Note on derived-stat coefficients:** `02-game-design/stats-and-formulas.md` (the `charStart` table) is the canonical source for every per-class derived-stat coefficient; where a per-class number below differs from that table, that table wins. The lines here are identity flavor.
 
 ## The 7 classes
 
@@ -27,7 +23,6 @@ file are superseded flavor and will be removed when the class entries are next r
   - **Last Bastion:** Defense passives (block, armor%, resist passive, damage reduction, thorns)
 - **Starting stats:** Str 25, Dex 15, Vit 25, Ene 10 — the tank
 - **Life per vit:** 3
-- **Stamina per vit:** 1.25
 - **Base AR:** 150
 
 ### 2. Shadow (Dexterity-based traps + shadow arts + melee combos)
@@ -43,7 +38,6 @@ file are superseded flavor and will be removed when the class entries are next r
     Dual-claw/cestus weapon mechanic.
 - **Starting stats:** Str 15, Dex 30, Vit 15, Ene 20
 - **Life per vit:** 2
-- **Stamina per vit:** 1.25
 - **Base AR:** 170
 
 ### 3. Berserker (Strength-based dual-wield + war cries + combat masteries)
@@ -60,7 +54,6 @@ file are superseded flavor and will be removed when the class entries are next r
     passive DR%, increased speed, +natural resist, increased stamina)
 - **Starting stats:** Str 30, Dex 20, Vit 25, Ene 5 — pure physical
 - **Life per vit:** 4
-- **Stamina per vit:** 1.5
 - **Base AR:** 135
 
 ### 4. Skin-Shifter (Shapeshifter + elemental + summon)
@@ -80,7 +73,6 @@ file are superseded flavor and will be removed when the class entries are next r
     "mastery" synergy from pack-tender skill.
 - **Starting stats:** Str 20, Dex 15, Vit 25, Ene 20
 - **Life per vit:** 2.5 (human), 3.5 (bear-form), 2 (raptor-form)
-- **Stamina per vit:** 1 (bear), 1.5 (raptor)
 - **Base AR:** 145
 
 ### 5. Reaper (Summon army + curses + projectile magic)
@@ -101,7 +93,6 @@ file are superseded flavor and will be removed when the class entries are next r
     spirit-form: energy shield analogue with mana-as-life conversion).
 - **Starting stats:** Str 10, Dex 10, Vit 15, Ene 35 — the caster
 - **Life per vit:** 1.5
-- **Stamina per vit:** 1.0
 - **Base AR:** 100
 
 ### 6. Eternal (Aura-support + holy melee + combat)
@@ -123,7 +114,6 @@ file are superseded flavor and will be removed when the class entries are next r
     +defense%, +healing effectiveness)
 - **Starting stats:** Str 20, Dex 15, Vit 25, Ene 20 — balanced melee/hybrid
 - **Life per vit:** 3
-- **Stamina per vit:** 1.0
 - **Base AR:** 140
 
 ### 7. Arcanist (Pure caster — 3 elemental trees)
@@ -146,5 +136,4 @@ file are superseded flavor and will be removed when the class entries are next r
     attack rating and resistances), and entropy-mastery (passive %poison/magic damage).
 - **Starting stats:** Str 10, Dex 10, Vit 10, Ene 35
 - **Life per vit:** 1
-- **Stamina per vit:** 1.0
 - **Base AR:** 95

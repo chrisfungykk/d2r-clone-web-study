@@ -14,7 +14,7 @@
 | Gold loss | `clvl%` capped 20% | same | same |
 | TC upgrade | Normal only | Exceptional unlocked | Elite unlocked |
 | mlvl rule | Fixed per monster | `= alvl` (champions +2, uniques +3) | `= alvl` (champions +2, uniques +3) |
-| Monsters immune | No | Rare (physical) | Yes (element, physical) |
+| Monsters immune | No | Very rare (physical or 1 element, exactly 100%) | Yes (element, physical) |
 
 ## Area level bands per difficulty
 
@@ -33,7 +33,7 @@ per the mlvl rule above (superuniques and act bosses keep fixed levels).
 
 - **Threshold:** immunity activates at ≥ 100% monster resistance. Resist values may exceed
   100 (e.g. 110–140) — the overage matters for breaking.
-- **Appearing:** Hell only (NM: very rare, physical-only)
+- **Appearing:** Hell only (NM: very rare — physical or a single element at exactly 100%)
 - **Breaking (auras/curses):** only resist-lowering auras and the physical-vulnerability /
   decay curses can push a resist below 100. Against an **immune** channel they apply at
   **1/5 effectiveness** — permanently for that originally-immune monster, even after the

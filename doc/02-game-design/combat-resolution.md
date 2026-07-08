@@ -148,7 +148,10 @@ leeched = finalPhysicalDamage * leech% / 100 * drainEffectiveness
 Where:
 - `drainEffectiveness` = monster drain stat % (0 = no leech)
 - `difficultyPenalty`: Normal 1.0, Nightmare 0.5, Hell 0.33
-- `PvPPenalty`: 0.5 (Phase 6)
+- `PvPPenalty`: 0.5 — **LEECH-ONLY.** This ×0.5 applies to life/mana leech vs players and
+  is a *separate* factor from the PvP **damage** penalty (×0.17 = 1/6, applied first, before
+  resists/block). Do not conflate. See `pvp.md` for the damage penalty and full PvP pipeline.
+  (Value active only under Phase 6 duels / hostility.)
 
 ## Damage reduction
 

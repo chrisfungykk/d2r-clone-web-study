@@ -146,7 +146,8 @@ it is pure and seedable. Any worker seam must still pass through `world_api.ts` 
 4. `world-generation.md` — zone procgen, placement passes, automap
 5. `data-model.md` — content table schemas
 6. `rendering.md` — Three.js pipeline + procedural assets
-7. `camera.md` — isometric + zoom + limited orbit
-8. `save-persistence.md` — save format and versioning
-9. `performance-budget.md` — frame/memory/draw-call budgets
-10. `networking-future.md` — Phase 6 authoritative server design
+7. `graphics-plan.md` — visual-quality tiers, lighting/post, G0…G11 roadmap (layers on rendering.md)
+8. `camera.md` — isometric + zoom + limited orbit
+9. `save-persistence.md` — save format and versioning
+10. `performance-budget.md` — frame/memory/draw-call budgets
+11. `networking-future.md` — Phase 6 authoritative server design

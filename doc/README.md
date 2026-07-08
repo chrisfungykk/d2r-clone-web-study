@@ -46,6 +46,7 @@ doc/
     quests-and-npcs.md
     endgame.md
     economy.md
+    pvp.md                              — PvP damage penalty (×0.17), hostility, duels (forward spec)
   03-ui-ux/
     hud.md
     inventory-and-panels.md

@@ -39,6 +39,8 @@ they meet at "+skills" affixes, sequenced inside P3).
 
 - **Testing strategy applies from Phase 0** (`testing-strategy.md`): golden replays, data
   validation, perf scene run every phase.
+- **Graphics ships as steps G0…G11** (`../01-architecture/graphics-plan.md`), each
+  independently landable and screenshot-verifiable, slotted across Phases 0.5→7.
 - **No phase pulls future content forward** without editing the phase docs first.
 - **Every phase updates**: `CLAUDE.md` commands section, `doc/README.md` if docs moved,
   migrations if saves changed.

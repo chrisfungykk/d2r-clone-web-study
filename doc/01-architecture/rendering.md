@@ -2,6 +2,10 @@
 
 > Three.js renderer, 100% procedural assets, built for hundreds of animated entities at 60 fps.
 > The renderer is a *view* of `IWorld` — it holds no gameplay state and computes no mechanics.
+>
+> **This doc is the pipeline + seam contract.** The visual-quality tiers (`gfx.ts` low/high/
+> ultra), lighting/IBL values, post stack, procedural texture kit, and the G0…G11 step roadmap
+> live in [`graphics-plan.md`](graphics-plan.md), which layers on top of this one.
 
 ## Scene architecture
 

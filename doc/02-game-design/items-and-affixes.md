@@ -43,7 +43,8 @@ Drop roll order (once the item generation decides "a weapon/armor/etc. will drop
 3. Rare?     (fail → 4)
 4. Magic?    (fail → 5)
 5. Superior? (fail → 6)
-6. Normal
+6. Normal?   (fail → 7)
+7. Low quality
 ```
 
 Quality chance uses the integer 128ths system with per-tier MF diminishing returns
@@ -181,6 +182,37 @@ durability floor(base/2)+1, 5% spawn chance.
 
 [^sup]: Mod list and ranges verified against `QualityItems.txt`-derived community data
 (diablowiki item-quality page, Maxroll durability reference).
+
+## Low-quality items (exact)
+
+- Checked last, after the normal roll fails (the "reject" outcome at the bottom of the
+  128ths system). Jewelry/charms/jewels never reach it — they are always ≥ magic.
+- Applies a fixed, hidden penalty (no rolled mods — the mirror of superior):
+  - **Weapons:** base min/max damage reduced to **75%** of normal (a 25% cut), floored.
+    Minimum damage is floored at **1** — if the cut would drop it below 1 it defaults to 1
+    (a base rolling 1-5 becomes 1-3).
+  - **Armor/helm/shield:** base defense reduced to **75%** of normal (a 25% cut), floored.
+  - **Durability (both):** max durability = `max(floor((baseDurability − 1) / 3), 1)` —
+    roughly one-third. Bases without durability (bows/crossbows) are unaffected.
+- Displayed prefix is one of a cosmetic set — **Worn, Frail, Shoddy, Battered, Chipped** —
+  all sharing the identical penalty; the name is flavor only.
+- **Cannot** spawn ethereal and never drops socketed; the act V socket quest can still add
+  sockets. Cannot roll magic+ affixes; sells for a pittance.
+- The intended "fix" is the cube upgrade: a low-quality item + gem(s) → a normal-quality
+  version, which **sets `ilvl := 1`** (see `crafting-cube.md`). Because that reset shrinks
+  the socket cap (an ilvl-1 item rolls few sockets), upgrading is a deliberate
+  socket-manipulation lever, not a free restore.[^lowq]
+
+**Open question (not ruled):** whether low-quality bases are eligible to form words is
+unsettled. The non-magic rule is certain (normal and superior definitely qualify), but
+sources differ by patch on whether low-quality bases can take a word. Left explicitly
+open — do not implement either behaviour until resolved. See
+`doc/research/r2-items-loot.md` § Uncertainties #5.
+
+[^lowq]: Damage/defense = 75% of base (25% penalty, floored; min damage floored at 1) and
+durability = `max(floor((base − 1) / 3), 1)` verified against PureDiablo/Fandom
+item-quality community data. These deductions are hardcoded, not `QualityItems.txt` mods
+(unlike superior's pricing row), so low-quality items carry no visible affix line.
 
 ## Durability baselines
 

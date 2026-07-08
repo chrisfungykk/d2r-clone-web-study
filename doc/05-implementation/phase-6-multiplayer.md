@@ -67,10 +67,12 @@ per lobby settings. Party chat.
 allows anyone to pick up; personal loot tagged per player instance (unpickable by others).
 
 ### 6.8 Dueling (optional)
-Duel button on party member → accept → duel state: reduced damage (40% in PvP as per
-research PvP penalty), flagged status, no permanent death.
-**Accept:** Duel works; damage correctly penalized; death returns party member to town with
-no XP loss.
+Duel button on party member → accept → duel state: reduced damage (**×0.17 = 1/6 PvP damage
+penalty**, applied before resists/block per the research PvP penalty), flagged status, no
+permanent death. Full pipeline, hostility model, and scope in
+`doc/02-game-design/pvp.md` (the leech-vs-player ×0.5 factor is separate — see that doc).
+**Accept:** Duel works; damage correctly penalized (×0.17 first, then resists/block); death
+returns party member to town with no XP loss.
 
 ## Test plan
 Loopback E2E suite (2–8 clients automated via headless bot scripts), network jitter

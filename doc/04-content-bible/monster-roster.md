@@ -222,11 +222,11 @@ farmable hole.
 | Vine-Tender | −30/0/0/95/0/0 | −20/25/25/**100**/0/0 | −10/40/40/**110**/0/25 |
 | Starving-One | 0/0/0/0/0/0 | 25/25/25/25/0/0 | 40/40/40/40/0/25 |
 
-**NM immunity note:** Brack-Wight and Vine-Tender carry the roster's "rare NM immunity"
-allowance (poison, at exactly 100% — any −poison-res effect breaks it).
-`difficulty-progression.md` currently words the NM allowance as physical-only; flagged
-for a one-line sync there when that doc is next revised. No Act I family is
-physical-immune in any difficulty.
+**NM immunity note:** Brack-Wight and Vine-Tender carry the roster's rare NM immunity
+allowance (poison, at exactly 100% — any −poison-res effect breaks it). This matches the
+canonical NM rule in `difficulty-progression.md`: NM immunities are very rare — a monster
+may be immune to physical or to a single element at exactly 100% (never multiple, never
+the broad Hell-style immunities). No Act I family is physical-immune in any difficulty.
 
 ## Act I superuniques
 
