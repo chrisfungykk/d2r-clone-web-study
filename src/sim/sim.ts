@@ -19,12 +19,14 @@ import type {
   WorldSnapshot,
   ZoneView,
 } from "../world_api.ts";
+import { DEV_ZONE_ID } from "./data/zones.ts";
 import type { Entity } from "./entity.ts";
 import { EntityPool } from "./entity.ts";
 import { Hasher } from "./hash.ts";
 import { IntentQueue } from "./intents.ts";
 import { Rng } from "./rng.ts";
 import { projectSnapshot, SnapshotBuffer } from "./views.ts";
+import { generateZone, type Zone } from "./zone.ts";
 
 export class Sim implements IWorld {
   readonly worldSeed: number;
@@ -33,6 +35,7 @@ export class Sim implements IWorld {
   private readonly pool = new EntityPool();
   private readonly intents = new IntentQueue();
   private readonly events: SimEvent[] = [];
+  private readonly zoneState: Zone;
   private _tick = 0;
   // Pooled double-buffer: two SnapshotBuffers reused across ticks so prev/cur stay valid for
   // interpolation while the older one is refilled in place (world-seam.md rule 5).
@@ -41,7 +44,7 @@ export class Sim implements IWorld {
   private curIsA = true;
   private prev: WorldSnapshot;
   private cur: WorldSnapshot;
-  // AoI focus (the player). Origin until a player spawns in B6.
+  // AoI focus (the player). Centred on the zone entrance until a real player spawns in B6.
   private focusX = 0;
   private focusZ = 0;
 
@@ -49,10 +52,18 @@ export class Sim implements IWorld {
     this.worldSeed = worldSeed | 0;
     this.rng = new Rng(this.worldSeed);
     this.kernelRng = this.rng.child("kernel");
+    this.zoneState = generateZone(this.worldSeed, DEV_ZONE_ID);
+    this.focusX = this.zoneState.entrance.x;
+    this.focusZ = this.zoneState.entrance.z;
     this.spawnDevEntities();
     this.cur = projectSnapshot(this.bufA, 0, this.pool.live(), this.focusX, this.focusZ);
     this.prev = this.cur;
     this.curIsA = true;
+  }
+
+  /** The current zone's runtime state (used by systems + B6 player spawn). */
+  getZone(): Zone {
+    return this.zoneState;
   }
 
   get tick(): number {
@@ -115,22 +126,12 @@ export class Sim implements IWorld {
     throw new Error("Sim.player: no player entity until B6 (character task)");
   }
 
-  terrainHeight(_x: number, _z: number): number {
-    return 0; // flat until B5 (zone generation)
+  terrainHeight(x: number, z: number): number {
+    return this.zoneState.terrainHeight(x, z);
   }
 
   zone(): DeepReadonly<ZoneView> {
-    return {
-      id: "dev",
-      theme: "wilderness",
-      seed: this.worldSeed,
-      widthM: 0,
-      depthM: 0,
-      props: [],
-      automapWidth: 0,
-      automapDepth: 0,
-      automap: [],
-    };
+    return this.zoneState.view();
   }
 
   drainEvents(): SimEvent[] {
@@ -161,15 +162,28 @@ export class Sim implements IWorld {
   }
 
   // ── internal ─────────────────────────────────────────────────────────────────────────
-  /** Phase-0 kernel placeholder: seeded dummy entities so advance() has state to evolve. */
+  /** Phase-0 kernel placeholder: seeded dummy entities on walkable ground near the entrance,
+   * so advance() has state to evolve. Superseded by real spawns/player in B6. */
   private spawnDevEntities(): void {
     const zr = this.rng.child("kernel/dev-spawn");
+    const { x: ex, z: ez } = this.zoneState.entrance;
     for (let i = 0; i < 8; i++) {
+      let x = ex;
+      let z = ez;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const cx = ex + (zr.float("x") - 0.5) * 24;
+        const cz = ez + (zr.float("z") - 0.5) * 24;
+        if (this.zoneState.walkAt(cx, cz)) {
+          x = cx;
+          z = cz;
+          break;
+        }
+      }
       this.pool.spawn({
         kind: "monster",
         archetype: "dev_dummy",
-        x: (zr.float("x") - 0.5) * 20,
-        z: (zr.float("z") - 0.5) * 20,
+        x,
+        z,
         facing: zr.float("facing") * Math.PI * 2,
         tick: 0,
       });
