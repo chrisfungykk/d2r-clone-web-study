@@ -6,7 +6,8 @@
 
 ## Quick start
 
-1. `doc/05-implementation/` covers implementation order, phases, and testing strategy.
+1. `doc/05-implementation/roadmap.md` is the master roadmap (M0–M7) and the entry point for
+   implementation order, phases, and testing strategy.
 2. `doc/01-architecture/` explains the engine design (determinism, seam, data model).
 3. `doc/02-game-design/` specifies every game system in mechanics-exact detail.
 4. `doc/03-ui-ux/` documents the D2R-inspired HUD, panels, and controls.
@@ -25,6 +26,7 @@ doc/
     world-seam.md                     — IWorld interface contract
     rendering.md                      — Three.js pipeline, procedural assets
     camera.md                         — isometric + zoom + limited orbit
+    graphics-plan.md                  — visual-quality tiers + G0–G11 step roadmap (render-side)
     data-model.md                     — content-as-data table schemas
     save-persistence.md               — save format, versioning, migration
     simulation-runtime.md             — entity store, collision, pathfinding, AI, missiles
@@ -60,6 +62,7 @@ doc/
     item-catalog.md
     class-identities.md
   05-implementation/
+    roadmap.md                        — master roadmap: M0–M7 milestones, 3 lanes, milestone graph (entry point)
     phases.md                         — phase dependency graph + summary table
     phase-0-engine-core.md            — scaffold, sim, seam, camera, locomotion
     phase-1-vertical-slice.md         — core loop with 2 classes, 1 zone chain
@@ -90,8 +93,8 @@ doc/
 
 | Role | Order |
 |---|---|
-| **Architect** | `01-architecture/*` → `05-implementation/phases.md` |
+| **Architect** | `05-implementation/roadmap.md` → `01-architecture/*` → `05-implementation/phases.md` |
 | **Systems engineer** | `01-architecture/determinism.md` → `01-architecture/data-model.md` → `02-game-design/*` for system being implemented |
 | **Content designer** | `00-vision.md` → `04-content-bible/` → `02-game-design/*` for constraints |
 | **UI engineer** | `03-ui-ux/*` → `01-architecture/world-seam.md` (for view DTOs) |
-| **First session (Phase 0)** | `01-architecture/overview.md` → `05-implementation/testing-strategy.md` → `05-implementation/phase-0-engine-core.md` |
+| **First session (Phase 0)** | `05-implementation/roadmap.md` → `01-architecture/overview.md` → `05-implementation/testing-strategy.md` → `05-implementation/phase-0-engine-core.md` |
