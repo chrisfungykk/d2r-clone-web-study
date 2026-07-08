@@ -8,7 +8,7 @@
 //   • Components are plain objects, created at spawn and mutated in place — no steady-state
 //     allocation once spawned.
 
-import type { EntityId, EntityKind } from "../world_api.ts";
+import type { AnimState, EntityId, EntityKind } from "../world_api.ts";
 
 export interface Transform {
   x: number; // metres (float)
@@ -41,6 +41,7 @@ export interface Entity {
   transform: Transform;
   lifecycle: Lifecycle;
   locomotion?: Locomotion;
+  anim?: AnimState; // sim-owned logical animation (world-seam.md rule 3)
   // combatant / ai / missile / … components are added in later tasks.
 }
 

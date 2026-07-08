@@ -49,9 +49,15 @@ export function fillView(v: MutableEntityView, e: Entity): void {
   v.x = e.transform.x;
   v.z = e.transform.z;
   v.facing = e.transform.facing;
-  v.anim.state = e.lifecycle.alive ? "idle" : "dead"; // real anim from combat/locomotion (B6)
-  v.anim.frame = 0;
-  v.anim.totalFrames = 1;
+  if (e.anim !== undefined) {
+    v.anim.state = e.anim.state;
+    v.anim.frame = e.anim.frame;
+    v.anim.totalFrames = e.anim.totalFrames;
+  } else {
+    v.anim.state = e.lifecycle.alive ? "idle" : "dead";
+    v.anim.frame = 0;
+    v.anim.totalFrames = 1;
+  }
   v.hpPct = undefined;
   v.modifiers = undefined;
   v.labels = undefined;

@@ -1,12 +1,10 @@
 // The deterministic core — `Sim implements IWorld` (world-seam.md, simulation-runtime.md).
 //
 // `advance()` runs one 40 ms tick as a fixed sequence of systems. Reordering systems changes
-// replay hashes and is a mechanics change (golden re-record). B2 wires the kernel skeleton:
+// replay hashes and is a mechanics change (golden re-record). Stage order:
 //   [intents → pathing → locomotion → events]
-// pathing is a no-op until B6; locomotion runs a small seeded "dev wander" over placeholder
-// entities so the kernel has evolving, hashable, seed-dependent state to test determinism
-// against. Those placeholders (spawnDevEntities / wander) are superseded by real zone spawns
-// and click-to-move locomotion in B5/B6 — before any golden replay fixture is recorded.
+// B6 wires the player: move intents are turned into A* paths (intents stage) and integrated
+// with slide collision (locomotion stage). Combat/ai/missiles arrive in later phases.
 
 import type {
   DeepReadonly,
@@ -19,55 +17,82 @@ import type {
   WorldSnapshot,
   ZoneView,
 } from "../world_api.ts";
+import { type CharStartRow, charStartById, DEV_CLASS_ID } from "./data/charStart.ts";
+import { moveProfile } from "./data/speeds.ts";
 import { DEV_ZONE_ID } from "./data/zones.ts";
 import type { Entity } from "./entity.ts";
 import { EntityPool } from "./entity.ts";
 import { Hasher } from "./hash.ts";
 import { IntentQueue } from "./intents.ts";
 import { Rng } from "./rng.ts";
+import { stepLocomotion } from "./systems/locomotion.ts";
+import { findPath } from "./systems/pathing.ts";
 import { projectSnapshot, SnapshotBuffer } from "./views.ts";
 import { generateZone, type Zone } from "./zone.ts";
 
 export class Sim implements IWorld {
   readonly worldSeed: number;
   private readonly rng: Rng;
-  private readonly kernelRng: Rng;
   private readonly pool = new EntityPool();
   private readonly intents = new IntentQueue();
   private readonly events: SimEvent[] = [];
   private readonly zoneState: Zone;
+  private readonly charStart: CharStartRow;
+  private readonly clearance: number;
+  private readonly runSpeed: number;
   private _tick = 0;
-  // Pooled double-buffer: two SnapshotBuffers reused across ticks so prev/cur stay valid for
-  // interpolation while the older one is refilled in place (world-seam.md rule 5).
+
+  // Pooled double-buffer (world-seam.md rule 5).
   private readonly bufA = new SnapshotBuffer();
   private readonly bufB = new SnapshotBuffer();
   private curIsA = true;
   private prev: WorldSnapshot;
   private cur: WorldSnapshot;
-  // AoI focus (the player). Centred on the zone entrance until a real player spawns in B6.
-  private focusX = 0;
-  private focusZ = 0;
+
+  // The local player.
+  private readonly playerId: PlayerId = 0;
+  private readonly playerEntity: Entity;
 
   constructor(worldSeed: number) {
     this.worldSeed = worldSeed | 0;
     this.rng = new Rng(this.worldSeed);
-    this.kernelRng = this.rng.child("kernel");
     this.zoneState = generateZone(this.worldSeed, DEV_ZONE_ID);
-    this.focusX = this.zoneState.entrance.x;
-    this.focusZ = this.zoneState.entrance.z;
-    this.spawnDevEntities();
-    this.cur = projectSnapshot(this.bufA, 0, this.pool.live(), this.focusX, this.focusZ);
+    this.charStart = charStartById(DEV_CLASS_ID) ?? {
+      classId: DEV_CLASS_ID,
+      name: "Wanderer",
+      baseLife: 50,
+      baseMana: 20,
+      moveKey: "player",
+      radiusM: 1,
+      clearanceCells: 1,
+    };
+    this.clearance = this.charStart.clearanceCells;
+    this.runSpeed = moveProfile(this.charStart.moveKey).run;
+
+    this.playerEntity = this.spawnPlayer();
+    this.spawnStaticDummies();
+
+    this.cur = projectSnapshot(
+      this.bufA,
+      0,
+      this.pool.live(),
+      this.playerEntity.transform.x,
+      this.playerEntity.transform.z,
+    );
     this.prev = this.cur;
     this.curIsA = true;
   }
 
-  /** The current zone's runtime state (used by systems + B6 player spawn). */
   getZone(): Zone {
     return this.zoneState;
   }
 
   get tick(): number {
     return this._tick;
+  }
+
+  playerEntityId(): EntityId {
+    return this.playerEntity.id;
   }
 
   // ── advancing ──────────────────────────────────────────────────────────────────────────
@@ -80,36 +105,51 @@ export class Sim implements IWorld {
     this.stageIntents();
     this.stagePathing();
     this.stageLocomotion();
-    this.stageEvents(); // builds the snapshot for the tick just computed
+    this.stageEvents();
   }
 
   private stageIntents(): void {
-    // Validation + application land in B6 (locomotion targets, skill orders). For now we
-    // drain so the queue can't grow unbounded across ticks.
-    this.intents.drainMovement();
+    for (const { playerId, intent } of this.intents.drainMovement()) {
+      if (playerId !== this.playerId || intent.t !== "move") continue;
+      // click-to-move: A* from the player's position, then hand the path to locomotion.
+      const p = this.playerEntity;
+      const result = findPath(
+        this.zoneState.grid,
+        p.transform.x,
+        p.transform.z,
+        intent.x,
+        intent.z,
+        this.clearance,
+      );
+      if (p.locomotion !== undefined) {
+        p.locomotion.path = result.points;
+        p.locomotion.pathIndex = 0;
+      }
+    }
+    // discrete intents (skills, pickup, …) are validated/applied in later phases
     this.intents.drainDiscrete();
   }
 
   private stagePathing(): void {
-    // Flow-field refresh + player A* requests — B6.
+    // Monster flow-fields + player repath triggers arrive with the AI phase.
   }
 
   private stageLocomotion(): void {
-    // Placeholder dev-wander (superseded by B6). Draw in id order for determinism.
     for (const e of this.pool.live()) {
-      const dx = (this.kernelRng.float("wander") - 0.5) * 0.08;
-      const dz = (this.kernelRng.float("wander") - 0.5) * 0.08;
-      e.transform.x += dx;
-      e.transform.z += dz;
+      if (e.locomotion !== undefined) stepLocomotion(this.zoneState.grid, e, this.clearance);
     }
   }
 
   private stageEvents(): void {
-    // Swap the pooled snapshot double-buffer: fill the buffer NOT currently exposed as `cur`
-    // (so `prev` — which becomes the old `cur` — is never overwritten mid-interpolation).
     const writeBuf = this.curIsA ? this.bufB : this.bufA;
     this.prev = this.cur;
-    this.cur = projectSnapshot(writeBuf, this._tick, this.pool.live(), this.focusX, this.focusZ);
+    this.cur = projectSnapshot(
+      writeBuf,
+      this._tick,
+      this.pool.live(),
+      this.playerEntity.transform.x, // AoI follows the player
+      this.playerEntity.transform.z,
+    );
     this.curIsA = !this.curIsA;
   }
 
@@ -122,8 +162,22 @@ export class Sim implements IWorld {
     return this.prev;
   }
 
-  player(_id: PlayerId): DeepReadonly<PlayerView> {
-    throw new Error("Sim.player: no player entity until B6 (character task)");
+  player(id: PlayerId): DeepReadonly<PlayerView> {
+    if (id !== this.playerId) throw new Error(`Sim.player: unknown player ${id}`);
+    const p = this.playerEntity;
+    return {
+      id: this.playerId,
+      entityId: p.id,
+      name: this.charStart.name,
+      clvl: 1,
+      x: p.transform.x,
+      z: p.transform.z,
+      hp: this.charStart.baseLife,
+      hpMax: this.charStart.baseLife,
+      mana: this.charStart.baseMana,
+      manaMax: this.charStart.baseMana,
+      zoneId: this.zoneState.id,
+    };
   }
 
   terrainHeight(x: number, z: number): number {
@@ -148,11 +202,12 @@ export class Sim implements IWorld {
       h.u32(e.id).str(e.kind).str(e.archetype);
       h.f64(e.transform.x).f64(e.transform.z).f64(e.transform.facing);
       h.bool(e.lifecycle.alive).u32(e.lifecycle.spawnTick);
+      if (e.anim !== undefined) h.str(e.anim.state).u32(e.anim.frame);
+      if (e.locomotion !== undefined) h.u32(e.locomotion.pathIndex).u32(e.locomotion.path.length);
     }
     return h.digest();
   }
 
-  // Exposed for kernel tests / future systems.
   liveCount(): number {
     return this.pool.liveCount;
   }
@@ -162,17 +217,30 @@ export class Sim implements IWorld {
   }
 
   // ── internal ─────────────────────────────────────────────────────────────────────────
-  /** Phase-0 kernel placeholder: seeded dummy entities on walkable ground near the entrance,
-   * so advance() has state to evolve. Superseded by real spawns/player in B6. */
-  private spawnDevEntities(): void {
-    const zr = this.rng.child("kernel/dev-spawn");
+  private spawnPlayer(): Entity {
+    const { x, z } = this.zoneState.entrance;
+    const e = this.pool.spawn({ kind: "player", archetype: this.charStart.classId, x, z, tick: 0 });
+    e.locomotion = {
+      speed: this.runSpeed,
+      mode: "idle",
+      radius: this.charStart.radiusM,
+      path: [],
+      pathIndex: 0,
+    };
+    e.anim = { state: "idle", frame: 0, totalFrames: 1 };
+    return e;
+  }
+
+  /** A few static monsters near the entrance for AoI/render exercising (no locomotion). */
+  private spawnStaticDummies(): void {
+    const zr = this.rng.child("dev-dummies");
     const { x: ex, z: ez } = this.zoneState.entrance;
-    for (let i = 0; i < 8; i++) {
-      let x = ex;
+    for (let i = 0; i < 6; i++) {
+      let x = ex + 6;
       let z = ez;
-      for (let attempt = 0; attempt < 12; attempt++) {
-        const cx = ex + (zr.float("x") - 0.5) * 24;
-        const cz = ez + (zr.float("z") - 0.5) * 24;
+      for (let attempt = 0; attempt < 16; attempt++) {
+        const cx = ex + (zr.float("x") - 0.5) * 30;
+        const cz = ez + (zr.float("z") - 0.5) * 30;
         if (this.zoneState.walkAt(cx, cz)) {
           x = cx;
           z = cz;
