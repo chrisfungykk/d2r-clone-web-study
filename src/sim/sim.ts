@@ -9,6 +9,7 @@
 // and click-to-move locomotion in B5/B6 — before any golden replay fixture is recorded.
 
 import type {
+  DeepReadonly,
   EntityId,
   Intent,
   IWorld,
@@ -23,9 +24,7 @@ import { EntityPool } from "./entity.ts";
 import { Hasher } from "./hash.ts";
 import { IntentQueue } from "./intents.ts";
 import { Rng } from "./rng.ts";
-import { toEntityView } from "./views.ts";
-
-const EMPTY_SNAPSHOT: WorldSnapshot = { tick: 0, entities: [] };
+import { projectSnapshot, SnapshotBuffer } from "./views.ts";
 
 export class Sim implements IWorld {
   readonly worldSeed: number;
@@ -35,16 +34,25 @@ export class Sim implements IWorld {
   private readonly intents = new IntentQueue();
   private readonly events: SimEvent[] = [];
   private _tick = 0;
-  private prev: WorldSnapshot = EMPTY_SNAPSHOT;
-  private cur: WorldSnapshot = EMPTY_SNAPSHOT;
+  // Pooled double-buffer: two SnapshotBuffers reused across ticks so prev/cur stay valid for
+  // interpolation while the older one is refilled in place (world-seam.md rule 5).
+  private readonly bufA = new SnapshotBuffer();
+  private readonly bufB = new SnapshotBuffer();
+  private curIsA = true;
+  private prev: WorldSnapshot;
+  private cur: WorldSnapshot;
+  // AoI focus (the player). Origin until a player spawns in B6.
+  private focusX = 0;
+  private focusZ = 0;
 
   constructor(worldSeed: number) {
     this.worldSeed = worldSeed | 0;
     this.rng = new Rng(this.worldSeed);
     this.kernelRng = this.rng.child("kernel");
     this.spawnDevEntities();
-    this.cur = this.buildSnapshot();
+    this.cur = projectSnapshot(this.bufA, 0, this.pool.live(), this.focusX, this.focusZ);
     this.prev = this.cur;
+    this.curIsA = true;
   }
 
   get tick(): number {
@@ -86,21 +94,24 @@ export class Sim implements IWorld {
   }
 
   private stageEvents(): void {
-    // Swap the snapshot double-buffer (B3 makes these pooled + AoI-filtered).
+    // Swap the pooled snapshot double-buffer: fill the buffer NOT currently exposed as `cur`
+    // (so `prev` — which becomes the old `cur` — is never overwritten mid-interpolation).
+    const writeBuf = this.curIsA ? this.bufB : this.bufA;
     this.prev = this.cur;
-    this.cur = this.buildSnapshot();
+    this.cur = projectSnapshot(writeBuf, this._tick, this.pool.live(), this.focusX, this.focusZ);
+    this.curIsA = !this.curIsA;
   }
 
   // ── queries ──────────────────────────────────────────────────────────────────────────
-  snapshot(): WorldSnapshot {
+  snapshot(): DeepReadonly<WorldSnapshot> {
     return this.cur;
   }
 
-  prevSnapshot(): WorldSnapshot {
+  prevSnapshot(): DeepReadonly<WorldSnapshot> {
     return this.prev;
   }
 
-  player(_id: PlayerId): PlayerView {
+  player(_id: PlayerId): DeepReadonly<PlayerView> {
     throw new Error("Sim.player: no player entity until B6 (character task)");
   }
 
@@ -108,7 +119,7 @@ export class Sim implements IWorld {
     return 0; // flat until B5 (zone generation)
   }
 
-  zone(): ZoneView {
+  zone(): DeepReadonly<ZoneView> {
     return {
       id: "dev",
       theme: "wilderness",
@@ -150,11 +161,6 @@ export class Sim implements IWorld {
   }
 
   // ── internal ─────────────────────────────────────────────────────────────────────────
-  private buildSnapshot(): WorldSnapshot {
-    const entities = this.pool.live().map(toEntityView);
-    return { tick: this._tick, entities };
-  }
-
   /** Phase-0 kernel placeholder: seeded dummy entities so advance() has state to evolve. */
   private spawnDevEntities(): void {
     const zr = this.rng.child("kernel/dev-spawn");

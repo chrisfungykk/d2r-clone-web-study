@@ -13,6 +13,15 @@
 // B2 defines the full type surface; B3 completes the snapshot double-buffering + AoI
 // implementation in the Sim and the JSON round-trip tests.
 
+// ─── deep-readonly wrapper — views are immutable across the seam (world-seam.md rule 1) ──
+export type DeepReadonly<T> = T extends (infer U)[]
+  ? readonly DeepReadonly<U>[]
+  : T extends readonly (infer U)[]
+    ? readonly DeepReadonly<U>[]
+    : T extends object
+      ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+      : T;
+
 // ─── ids (sequential ints from the sim; zone ids are stable snake_case strings) ──────────
 export type EntityId = number;
 export type PlayerId = number;
@@ -175,13 +184,13 @@ export interface IWorld {
   submit(playerId: PlayerId, intent: Intent): void;
   advance(): void; // run exactly one 40 ms tick, consuming queued intents
 
-  // queries (renderer/UI read path)
-  snapshot(): WorldSnapshot;
-  prevSnapshot(): WorldSnapshot;
-  player(id: PlayerId): PlayerView;
+  // queries (renderer/UI read path) — all views are deep-readonly across the seam
+  snapshot(): DeepReadonly<WorldSnapshot>;
+  prevSnapshot(): DeepReadonly<WorldSnapshot>;
+  player(id: PlayerId): DeepReadonly<PlayerView>;
   terrainHeight(x: number, z: number): number;
-  zone(): ZoneView;
+  zone(): DeepReadonly<ZoneView>;
 
-  // events since last drain
+  // events since last drain (a fresh array the caller owns)
   drainEvents(): SimEvent[];
 }
