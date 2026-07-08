@@ -28,8 +28,8 @@
 | Arcanist | 1 | 3 | 35 | 35 | 0.75 | 2 | 1 | 1 |
 
 Stamina per vit equals stamina per level for every class (the D2 rule). **This table is
-canonical.** Where `04-content-bible/class-identities.md` lists different stamina-per-vit
-flavor values, this table wins; class-identities is narrative reference only for numbers.
+canonical** for all per-class derived-stat coefficients; `04-content-bible/class-identities.md`
+points here for numbers and carries identity/flavor only.
 
 All coefficients implemented as integer arithmetic: `totalLife = (base + perLevel * (clvl-1) + perVit * vit) * (100 + lifePercentBonus) / 100`.
 
